@@ -292,6 +292,28 @@ static struct sony_camera_driver_combination_info driver_comb_tbl[] = {
 
 static int sony_camera_set_power(struct sony_camera_data*, int, bool);
 
+/*
+ * XperiaGSI: BoB load vote for the iToF module (Xperia 1 II, SUNHQCN1/IMX316).
+ * pmic_vin is pm8150a_bob. With no load vote BoB sits in pass-through, and when the ToF laser
+ * starts its driver IC reports lddStatus=0x54 and the HAL restarts the sensor every ~400 ms.
+ * Holding BoB in PWM while the ToF module is powered removes the fault (measured 2026-10-09:
+ * 20 faults in 12 s without, 0 with; AF on a dark plain wall at 25-30 cm landed at 235-310 mm in
+ * 4 of 5 runs with ToF, 1 of 5 without). 2 A is the load Qualcomm's own cam-sensor nodes in this
+ * DT put on cam_bob (rgltr-load-current), which the bob's mode-threshold-currents map to PWM.
+ */
+#define SONY_CAMERA_TOF_PMIC_VIN_LOAD_UA	2000000
+
+static bool sony_camera_is_tof(const struct sony_camera_data *data)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(driver_comb_tbl); i++)
+		if (driver_comb_tbl[i].id == data->id &&
+		    !strcmp(driver_comb_tbl[i].thermal_name, "sony_cam_tof"))
+			return true;
+	return false;
+}
+
 static int sony_camera_get_dt_gpio_req_tbl(struct device_node *of_node,
 	struct sony_camera_data *camera_data)
 {
@@ -1432,6 +1454,9 @@ static int sony_camera_power_ctrl(struct sony_camera_data *data,
 				goto exit;
 			}
 			if (on) {
+				if (sony_camera_is_tof(data))
+					(void)regulator_set_load(data->pmic_vin,
+						SONY_CAMERA_TOF_PMIC_VIN_LOAD_UA);
 				rc = regulator_enable(data->pmic_vin);
 				if (rc < 0) {
 					LOGE("%s pmic vin enable failed %d\n", __func__, __LINE__);
@@ -1439,6 +1464,8 @@ static int sony_camera_power_ctrl(struct sony_camera_data *data,
 				}
 			} else {
 				(void)regulator_disable(data->pmic_vin);
+				if (sony_camera_is_tof(data))
+					(void)regulator_set_load(data->pmic_vin, 0);
 			}
 			break;
 		case SONY_MIPI_SWITCH:
