@@ -1331,8 +1331,19 @@ static void qpnp_flash_led_node_set(struct flash_node_data *fnode, int value)
 				break;
 			}
 		}
-	} else if (prgm_current_ma <= 20 &&
-			(led->wa_flags & PM8150L_IRES_WA)) {
+	} else if ((prgm_current_ma <= 20 &&
+			(led->wa_flags & PM8150L_IRES_WA)) ||
+			/*
+			 * XperiaGSI: torch brightness levels. The Xperia 1 II's
+			 * flash PMIC reports subtype 0x27, not PM8150L's 0x1F, so
+			 * the workaround above never applies and every current is
+			 * coded in 12.5 mA steps (12.5/25/37.5/50/62.5 mA), too
+			 * coarse for the flashlight slider. The 5 mA IRES is valid
+			 * up to FLASH_LED_IRES5P0_MAX_CURR_MA (640 mA). Torch nodes
+			 * only, so flash currents are unchanged.
+			 */
+			(fnode->type == FLASH_LED_TYPE_TORCH &&
+			 prgm_current_ma <= 60)) {
 		fnode->ires_idx = FLASH_LED_IRES_BASE;
 		fnode->ires_ua = FLASH_LED_IRES_MIN_UA;
 	}
