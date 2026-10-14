@@ -441,15 +441,23 @@ int snd_soc_put_volsw_sx(struct snd_kcontrol *kcontrol,
 	int min = mc->min;
 	unsigned int mask = (1U << (fls(min + max) - 1)) - 1;
 	int err = 0;
+	long levels;
 	unsigned int val, val_mask, val2 = 0;
 
+	/*
+	 * XperiaGSI: an _sx control takes values 0 .. (max - min), which is also
+	 * what snd_soc_info_volsw() reports (platform_max - min). Comparing against
+	 * max alone (as the 4.19.y "fix bounds check for _sx controls" backport does)
+	 * rejects most of the range of controls with a negative min, e.g. every
+	 * Qualcomm codec digital gain (-84..40 dB, 84 = 0 dB): anything above -44 dB
+	 * failed with -EINVAL, so the gains set in mixer_paths.xml (headphone -9 dB,
+	 * microphone +14..+26 dB) never reached the hardware and stayed at 0 dB.
+	 */
+	levels = (mc->platform_max ? mc->platform_max : max) - min;
+	if ((long)ucontrol->value.integer.value[0] < 0 ||
+	    ucontrol->value.integer.value[0] > levels)
+		return -EINVAL;
 	val = ucontrol->value.integer.value[0];
-	if (mc->platform_max && val > mc->platform_max)
-		return -EINVAL;
-	if (val > max)
-		return -EINVAL;
-	if (val < 0)
-		return -EINVAL;
 	val_mask = mask << shift;
 	val = (val + min) & mask;
 	val = val << shift;
@@ -459,12 +467,10 @@ int snd_soc_put_volsw_sx(struct snd_kcontrol *kcontrol,
 		return err;
 
 	if (snd_soc_volsw_is_stereo(mc)) {
+		if ((long)ucontrol->value.integer.value[1] < 0 ||
+		    ucontrol->value.integer.value[1] > levels)
+			return -EINVAL;
 		val2 = ucontrol->value.integer.value[1];
-
-		if (mc->platform_max && val2 > mc->platform_max)
-			return -EINVAL;
-		if (val2 > max)
-			return -EINVAL;
 
 		val_mask = mask << rshift;
 		val2 = (val2 + min) & mask;
