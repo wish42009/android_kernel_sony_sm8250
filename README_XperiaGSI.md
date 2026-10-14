@@ -12,6 +12,7 @@ Every XperiaGSI change is a separate commit on top of it:
 | arm64: configs: pdx203: enable uclamp | `CONFIG_UCLAMP_TASK(_GROUP)=y` (drops the unused schedtune) | Android 17 task profiles drive CPU QoS through uclamp only |
 | leds: qpnp-flash-v2: 5 mA IRES for torch | torch currents up to 60 mA use the 5 mA step | five flashlight brightness levels instead of 12.5 mA steps |
 | sony_camera: BoB load vote for iToF | 2 A load on pm8150a_bob while the ToF module is powered | stops the ToF laser driver fault (lddStatus 0x54), ToF autofocus works |
+| ASoC: ops: accept the full range of _sx controls | `snd_soc_put_volsw_sx()` checks against `(platform_max or max) - min` | the 4.19.y bounds-check backport rejected every Qualcomm codec gain above -44 dB, so mixer_paths gains never applied (wired headphones pumped through the HPH compander with an EQ on) |
 
 ## Build
 
