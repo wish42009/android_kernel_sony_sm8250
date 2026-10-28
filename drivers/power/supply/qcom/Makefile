@@ -14,3 +14,4 @@ obj-$(CONFIG_HL6111R)			+= hl6111r.o
 obj-$(CONFIG_SMB1398_CHARGER)		+= smb1398-charger.o pmic-voter.o
 obj-$(CONFIG_QPNP_SMBLITE)		+= step-chg-jeita.o battery.o qpnp-smblite.o smblite-lib.o pmic-voter.o storm-watch.o schgm-flashlite.o
 obj-$(CONFIG_IDTP9382A)			+= idtp9382a.o
+obj-$(CONFIG_SOMC_CHARGER_EXTENSION)	+= somc-battchg-ext-compat.o
