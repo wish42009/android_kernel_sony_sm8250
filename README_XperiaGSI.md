@@ -14,6 +14,7 @@ Every XperiaGSI change is a separate commit on top of it:
 | sony_camera: BoB load vote for iToF | 2 A load on pm8150a_bob while the ToF module is powered | stops the ToF laser driver fault (lddStatus 0x54), ToF autofocus works |
 | ASoC: ops: accept the full range of _sx controls | `snd_soc_put_volsw_sx()` checks against `(platform_max or max) - min` | the 4.19.y bounds-check backport rejected every Qualcomm codec gain above -44 dB, so mixer_paths gains never applied (wired headphones pumped through the HPH compander with an EQ on) |
 | power: supply: qcom: battchg_ext smart charging nodes | `/sys/class/battchg_ext/smart_charging_activation` and `smart_charging_interruption`, passed through to the `battery_ext` power supply | Sony's off-mode charging UI (chargemon) does battery care through these nodes, as on newer Xperia kernels |
+| dm ioctl: announce a new device again once it has a name | `dev_create()` sends a second "add" uevent after `dm_hash_insert()` | 4.19 sends "add" before the device is named; Android's ueventd applies a dm node's owner, mode and label only on "add", by name, so `*.apex` dm nodes sometimes stayed 0600 and system_server could not parse APEX updates (boot loop at the Xperia logo) |
 
 ## Build
 
