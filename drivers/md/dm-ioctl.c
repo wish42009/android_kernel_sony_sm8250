@@ -767,6 +767,17 @@ static int dev_create(struct file *filp, struct dm_ioctl *param, size_t param_si
 		return r;
 	}
 
+	/*
+	 * The disk's "add" uevent went out from dm_create(), before the device
+	 * had a name. Android's ueventd sets the node's owner, mode and SELinux
+	 * label only on "add", looking the name up with DM_DEV_STATUS, so when it
+	 * handles that event before dm_hash_insert() the name-based rules (e.g.
+	 * /dev/block/mapper/<name>.apex) are missed. Announce the device again now
+	 * that it is named; ueventd applies the rules to the existing node.
+	 * Kernels from 5.15 send "add" only at the first table load instead.
+	 */
+	dm_kobject_uevent(md, KOBJ_ADD, 0);
+
 	param->flags &= ~DM_INACTIVE_PRESENT_FLAG;
 
 	__dev_status(md, param);
